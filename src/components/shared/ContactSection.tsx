@@ -26,33 +26,43 @@ export const ContactSection = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/contact', {
+      const response = await fetch('https://divgaze-agent.vercel.app/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          service: formData.service,
+          message: formData.message,
+          language: 'English',
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send message');
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "✅ Message sent successfully!",
+          description: "We'll get back to you within 24 hours. Check your email for confirmation.",
+        });
+
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          service: '',
+          message: '',
+        });
+      } else {
+        throw new Error(data.error || 'Failed to send message');
       }
-
-      toast({
-        title: "Message sent successfully!",
-        description: "We'll get back to you as soon as possible.",
-      });
-
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        service: '',
-        message: '',
-      });
     } catch (error) {
+      console.error('Error submitting form:', error);
       toast({
-        title: "Something went wrong",
+        title: "❌ Failed to send message",
         description: "Please try again or email us directly at divgaze@gmail.com",
         variant: "destructive",
       });
@@ -139,7 +149,7 @@ export const ContactSection = () => {
                   <option value="AI Solutions">AI Solutions</option>
                   <option value="Web Development">Web Dev & Systems</option>
                   <option value="Digital Marketing">Digital Marketing</option>
-                  <option value="Not Sure Yet">Not Sure Yet</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
 
