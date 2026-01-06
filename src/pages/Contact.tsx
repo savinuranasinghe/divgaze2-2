@@ -13,6 +13,7 @@ const Contact = () => {
     service: '',
     message: '',
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Auto-scroll to form if #contact in URL
@@ -31,15 +32,96 @@ const Contact = () => {
     }
   }, []);
 
+  // Validation functions
+  const validateName = (name: string): string | null => {
+    if (!name.trim()) return 'Name is required';
+    if (name.length < 2) return 'Name must be at least 2 characters';
+    if (name.length > 100) return 'Name must be less than 100 characters';
+    if (!/^[a-zA-Z\s.-]+$/.test(name)) return 'Name can only contain letters, spaces, dots, and hyphens';
+    return null;
+  };
+
+  const validateEmail = (email: string): string | null => {
+    if (!email.trim()) return 'Email is required';
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return 'Please enter a valid email address';
+    return null;
+  };
+
+  const validatePhone = (phone: string): string | null => {
+    if (!phone.trim()) return 'Phone number is required';
+    const cleanPhone = phone.replace(/[\s()-]/g, '');
+    if (cleanPhone.length < 7) return 'Phone number must be at least 7 digits';
+    if (cleanPhone.length > 15) return 'Phone number is too long';
+    if (!/^\+?[\d]+$/.test(cleanPhone)) return 'Phone number can only contain digits and + symbol';
+    return null;
+  };
+
+  const validateMessage = (message: string): string | null => {
+    if (!message.trim()) return 'Message is required';
+    if (message.length < 10) return 'Message must be at least 10 characters';
+    if (message.length > 5000) return 'Message must be less than 5000 characters';
+    return null;
+  };
+
+  const validateService = (service: string): string | null => {
+    if (!service) return 'Please select a service';
+    return null;
+  };
+
+  // Handle input changes with real-time validation
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    
+    if (name === 'phone') {
+      const sanitizedValue = value.replace(/[^0-9+\s()-]/g, '');
+      setFormData(prev => ({ ...prev, [name]: sanitizedValue }));
+    } else if (name === 'name') {
+      const sanitizedValue = value.replace(/[^a-zA-Z\s.-]/g, '');
+      setFormData(prev => ({ ...prev, [name]: sanitizedValue }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  // Validate all fields
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    const nameError = validateName(formData.name);
+    if (nameError) newErrors.name = nameError;
+
+    const emailError = validateEmail(formData.email);
+    if (emailError) newErrors.email = emailError;
+
+    const phoneError = validatePhone(formData.phone);
+    if (phoneError) newErrors.phone = phoneError;
+
+    const serviceError = validateService(formData.service);
+    if (serviceError) newErrors.service = serviceError;
+
+    const messageError = validateMessage(formData.message);
+    if (messageError) newErrors.message = messageError;
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      toast({
+        title: "⚠️ Please fix the errors",
+        description: "Check the form fields and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -49,11 +131,11 @@ const Contact = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          phone: formData.phone.trim(),
           service: formData.service,
-          message: formData.message,
+          message: formData.message.trim(),
           language: 'English',
         }),
       });
@@ -66,6 +148,7 @@ const Contact = () => {
           description: "We'll get back to you within 24 hours. Check your email for confirmation.",
         });
         setFormData({ name: '', email: '', phone: '', service: '', message: '' });
+        setErrors({});
       } else {
         throw new Error(data.error || 'Failed to send message');
       }
@@ -73,7 +156,7 @@ const Contact = () => {
       console.error('Error submitting form:', error);
       toast({
         title: '❌ Failed to send message',
-        description: 'Please try again or email us directly at divgaze@gmail.com',
+        description: error instanceof Error ? error.message : 'Please try again or email us directly at divgaze@gmail.com',
         variant: 'destructive',
       });
     } finally {
@@ -155,9 +238,11 @@ const Contact = () => {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-4 bg-secondary border-0 focus:ring-2 focus:ring-foreground transition-all outline-none"
+                    maxLength={100}
+                    className={`w-full px-4 py-4 bg-secondary border-2 ${errors.name ? 'border-red-500' : 'border-transparent'} focus:ring-2 focus:ring-foreground transition-all outline-none`}
                     placeholder="Your name"
                   />
+                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                 </div>
 
                 <div>
@@ -171,9 +256,11 @@ const Contact = () => {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-4 bg-secondary border-0 focus:ring-2 focus:ring-foreground transition-all outline-none"
+                    maxLength={254}
+                    className={`w-full px-4 py-4 bg-secondary border-2 ${errors.email ? 'border-red-500' : 'border-transparent'} focus:ring-2 focus:ring-foreground transition-all outline-none`}
                     placeholder="your@email.com"
                   />
+                  {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                 </div>
 
                 <div>
@@ -187,9 +274,12 @@ const Contact = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-4 bg-secondary border-0 focus:ring-2 focus:ring-foreground transition-all outline-none"
+                    maxLength={20}
+                    inputMode="tel"
+                    className={`w-full px-4 py-4 bg-secondary border-2 ${errors.phone ? 'border-red-500' : 'border-transparent'} focus:ring-2 focus:ring-foreground transition-all outline-none`}
                     placeholder="+94 77 123 4567"
                   />
+                  {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
                 </div>
 
                 <div>
@@ -202,7 +292,7 @@ const Contact = () => {
                     value={formData.service}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-4 bg-secondary border-0 focus:ring-2 focus:ring-foreground transition-all outline-none appearance-none cursor-pointer"
+                    className={`w-full px-4 py-4 bg-secondary border-2 ${errors.service ? 'border-red-500' : 'border-transparent'} focus:ring-2 focus:ring-foreground transition-all outline-none appearance-none cursor-pointer`}
                   >
                     <option value="">Select a service</option>
                     <option value="Web Development">Web Development</option>
@@ -210,6 +300,7 @@ const Contact = () => {
                     <option value="Creative Design">Creative Design</option>
                     <option value="Other">Other</option>
                   </select>
+                  {errors.service && <p className="text-red-500 text-sm mt-1">{errors.service}</p>}
                 </div>
 
                 <div>
@@ -223,9 +314,12 @@ const Contact = () => {
                     onChange={handleChange}
                     required
                     rows={6}
-                    className="w-full px-4 py-4 bg-secondary border-0 focus:ring-2 focus:ring-foreground transition-all outline-none resize-none"
+                    maxLength={5000}
+                    className={`w-full px-4 py-4 bg-secondary border-2 ${errors.message ? 'border-red-500' : 'border-transparent'} focus:ring-2 focus:ring-foreground transition-all outline-none resize-none`}
                     placeholder="Tell us about your project..."
                   />
+                  {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message}</p>}
+                  <p className="text-muted-foreground text-xs mt-1 text-right">{formData.message.length}/5000</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4">
