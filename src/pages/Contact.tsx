@@ -27,26 +27,17 @@ const Contact = () => {
     setIsSubmitting(true);
 
     try {
-      // Check if we're in production (Vercel) or local development
-      const isProduction = import.meta.env.PROD;
-      
-      if (isProduction) {
-        // Production: Send to API
-        const response = await fetch('/api/contact', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
+      // ✅ FIXED: Now points to your working divgaze-agent API
+      const response = await fetch('https://divgaze-agent.vercel.app/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-        if (!response.ok) {
-          throw new Error('Failed to send message');
-        }
-      } else {
-        // Local development: Simulate API call
-        console.log('Form data (local dev):', formData);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        throw new Error('Failed to send message');
       }
 
       toast({
