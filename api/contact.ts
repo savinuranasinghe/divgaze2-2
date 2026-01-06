@@ -54,7 +54,8 @@ export default async function handler(req: any, res: any) {
     'https://divgaze.com',
     'https://www.divgaze.com',
     'http://localhost:3000',
-    'http://localhost:5173'
+    'http://localhost:5173',
+    'https://divgaze2-2.vercel.app'
   ];
 
   const origin = req.headers.origin || '';
