@@ -27,17 +27,26 @@ const Contact = () => {
     setIsSubmitting(true);
 
     try {
-      // Send to API
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      // Check if we're in production (Vercel) or local development
+      const isProduction = import.meta.env.PROD;
+      
+      if (isProduction) {
+        // Production: Send to API
+        const response = await fetch('/api/contact', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to send message');
+        if (!response.ok) {
+          throw new Error('Failed to send message');
+        }
+      } else {
+        // Local development: Simulate API call
+        console.log('Form data (local dev):', formData);
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
       toast({
@@ -47,9 +56,10 @@ const Contact = () => {
 
       setFormData({ name: '', email: '', phone: '', service: '', message: '' });
     } catch (error) {
+      console.error('Contact form error:', error);
       toast({
         title: 'Something went wrong',
-        description: 'Please try again or email us directly.',
+        description: 'Please try again or email us directly at divgaze@gmail.com',
         variant: 'destructive',
       });
     } finally {
